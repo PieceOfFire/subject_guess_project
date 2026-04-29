@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Угадай субъект РФ</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --text: #111827;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --panel: #ffffff;
+      --blue: #2563eb;
+      --blue2: #1d4ed8;
+      --yellow: #facc15;
+      --yellow-line: #ca8a04;
+      --green: #22c55e;
+      --green-line: #15803d;
+      --ok-bg: #dcfce7;
+      --ok-text: #166534;
+      --warn-bg: #fef3c7;
+      --warn-text: #92400e;
+      --neutral-bg: #f1f5f9;
+      --neutral-text: #334155;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: minmax(440px, 58vh) auto;
+    }
+
+    .mapShell {
+      position: relative;
+      border-bottom: 1px solid var(--line);
+      background: #dbeafe;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .topPanel {
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      z-index: 10;
+      width: min(520px, calc(100vw - 32px));
+      background: rgba(255,255,255,.94);
+      border: 1px solid rgba(229,231,235,.95);
+      box-shadow: 0 10px 32px rgba(15,23,42,.16);
+      border-radius: 18px;
+      padding: 14px;
+      backdrop-filter: blur(8px);
+    }
+
+    .topLine {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 22px;
+      line-height: 1.15;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .attemptsBox {
+      min-width: 82px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 8px 10px;
+      text-align: center;
+      background: #f8fafc;
+    }
+
+    .attemptsBox b {
+      display: block;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    input, button {
+      font: inherit;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    input {
+      min-width: 0;
+      border: 1px solid #cbd5e1;
+      outline: none;
+      background: #fff;
+    }
+
+    input:focus {
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96,165,250,.25);
+    }
+
+    button {
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: #fff;
+      font-weight: 700;
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+
+    .primary:hover:not(:disabled) { background: var(--blue2); }
+
+    .status {
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .legend {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      z-index: 10;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      background: rgba(255,255,255,.94);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 10px;
+      box-shadow: 0 8px 24px rgba(15,23,42,.12);
+      font-size: 12px;
+      color: #374151;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid #94a3b8;
+      display: inline-block;
+    }
+
+    .content {
+      padding: 16px;
+    }
+
+    .tableCard {
+      max-width: 1320px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 10px 24px rgba(15,23,42,.06);
+    }
+
+    .tableHead {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .tableHead h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .tableWrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1000px;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #475569;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:nth-child(even) { background: #fbfdff; }
+
+    .nameCell b {
+      display: block;
+      color: #0f172a;
+    }
+
+    .nameCell span {
+      display: block;
+      margin-top: 3px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .ok { background: var(--ok-bg); color: var(--ok-text); }
+    .close { background: var(--warn-bg); color: var(--warn-text); }
+    .neutral { background: var(--neutral-bg); color: var(--neutral-text); }
+    .districtPill { cursor: help; text-decoration: underline dotted currentColor; text-underline-offset: 3px; }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 34px 12px;
+      font-weight: 650;
+    }
+
+    .maplibregl-popup-content {
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-family: inherit;
+    }
+
+    @media (max-width: 760px) {
+      .page { grid-template-rows: minmax(480px, 65vh) auto; }
+      .controls { grid-template-columns: 1fr; }
+      .legend { left: 16px; right: 16px; border-radius: 14px; justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="mapShell">
+      <div id="map"></div>
+
+      <div class="topPanel">
+        <div class="topLine">
+          <div>
+            <h1>Угадай субъект РФ</h1>
+            <div class="small">Карта на MapLibre, как в загруженном проекте. После попытки субъект подсвечивается жёлтым. В базе все субъекты из ст. 65 Конституции РФ.</div>
+          </div>
+          <div class="attemptsBox">
+            <div class="small">попытки</div>
+            <b><span id="attemptsNow">0</span>/8</b>
+          </div>
+        </div>
+
+        <form class="controls" id="guessForm">
+          <input id="guessInput" list="subjectList" placeholder="Например: Республика Татарстан" autocomplete="off" />
+          <datalist id="subjectList"></datalist>
+          <button class="primary" type="submit">Проверить</button>
+          <button type="button" id="restartBtn">Новая</button>
+        </form>
+
+        <div class="status" id="statusBox">Угадай субъект за 8 попыток.</div>
+        <div class="small" id="mapSourceLine" style="margin-top:8px;">Контуры: fallback-полигоны прототипа.</div>
+      </div>
+
+      <div class="legend">
+        <span><i class="dot" style="background: rgba(37,99,235,.12);"></i> доступно</span>
+        <span><i class="dot" style="background: #facc15; border-color:#ca8a04;"></i> попытка</span>
+        <span><i class="dot" style="background: #22c55e; border-color:#15803d;"></i> угадано</span>
+      </div>
+    </section>
+
+    <main class="content">
+      <section class="tableCard">
+        <div class="tableHead">
+          <div>
+            <h2>История попыток</h2>
+            <div class="small">↑ — у правильного субъекта значение больше, ↓ — меньше, ✓ — совпало или очень близко.</div>
+          </div>
+          <div class="small">Параметры: население, площадь, средняя температура, федеральный округ, расстояние, направление.</div>
+        </div>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Субъект</th>
+                <th>Население</th>
+                <th>Площадь</th>
+                <th>Средняя t°</th>
+                <th>Фед. округ</th>
+                <th>Расстояние</th>
+                <th>Направление</th>
+              </tr>
+            </thead>
+            <tbody id="attemptRows">
+              <tr><td colspan="8" class="empty">Пока нет попыток.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script>
+    const MAX_ATTEMPTS = 8;
+    const DISTRICT_NAMES = {
+      'ЦФО': 'Центральный федеральный округ',
+      'СЗФО': 'Северо-Западный федеральный округ',
+      'ЮФО': 'Южный федеральный округ',
+      'СКФО': 'Северо-Кавказский федеральный округ',
+      'ПФО': 'Приволжский федеральный округ',
+      'УрФО': 'Уральский федеральный округ',
+      'СФО': 'Сибирский федеральный округ',
+      'ДФО': 'Дальневосточный федеральный округ'
+    };
+    function districtTitle(code) { return DISTRICT_NAMES[code] || code; }
+
+    // Тестовая база. Значения округлены для прототипа.
+    // bbox используется как fallback-контур, если рядом с server.py нет ADM1.geojson.
+    const SUBJECTS = [{"id":"adygea","name":"Республика Адыгея","district":"ЮФО","population":497000,"area":7792,"avgTemp":10.5,"lat":44.61,"lon":40.1,"bbox":[39.504,44.212,40.696,45.008],"aliases":["Adygea","Republic of Adygea","Республика Адыгея"]},{"id":"altai_republic","name":"Республика Алтай","district":"СФО","population":221000,"area":92903,"avgTemp":-1.0,"lat":50.72,"lon":86.86,"bbox":[84.801,49.347,88.919,52.093],"aliases":["Altai Republic","Republic of Altai","Республика Алтай"]},{"id":"bashkortostan","name":"Республика Башкортостан","district":"ПФО","population":4060000,"area":142947,"avgTemp":3.4,"lat":54.74,"lon":55.97,"bbox":[53.415,53.037,58.525,56.443],"aliases":["Bashkortostan","Republic of Bashkortostan","Республика Башкортостан"]},{"id":"buryatia","name":"Республика Бурятия","district":"ДФО","population":972000,"area":351334,"avgTemp":-1.2,"lat":51.83,"lon":107.58,"bbox":[103.575,49.16,111.585,54.5],"aliases":["Buryatia","Republic of Buryatia","Республика Бурятия"]},{"id":"dagestan","name":"Республика Дагестан","district":"СКФО","population":3180000,"area":50270,"avgTemp":10.2,"lat":42.98,"lon":47.5,"bbox":[45.985,41.97,49.015,43.99],"aliases":["Dagestan","Republic of Dagestan","Республика Дагестан"]},{"id":"donetsk_people_s_republic","name":"Донецкая Народная Республика","district":"ЮФО","population":3500000,"area":26517,"avgTemp":9.0,"lat":48.0,"lon":37.8,"bbox":[36.7,47.266,38.9,48.734],"aliases":["Donetsk People's Republic","Donetsk People’s Republic","Donetsk","Donetsk Oblast","Донецкая Народная Республика","ДНР"]},{"id":"ingushetia","name":"Республика Ингушетия","district":"СКФО","population":520000,"area":3628,"avgTemp":9.6,"lat":43.17,"lon":44.8,"bbox":[44.393,42.899,45.207,43.441],"aliases":["Ingushetia","Republic of Ingushetia","Республика Ингушетия"]},{"id":"kabardino_balkaria","name":"Кабардино-Балкарская Республика","district":"СКФО","population":905000,"area":12470,"avgTemp":8.5,"lat":43.48,"lon":43.6,"bbox":[42.845,42.977,44.355,43.983],"aliases":["Kabardino-Balkaria","Kabardino-Balkar Republic","Кабардино-Балкарская Республика"]},{"id":"kalmykia","name":"Республика Калмыкия","district":"ЮФО","population":265000,"area":74731,"avgTemp":9.5,"lat":46.31,"lon":44.27,"bbox":[42.423,45.079,46.117,47.541],"aliases":["Kalmykia","Republic of Kalmykia","Республика Калмыкия"]},{"id":"karachay_cherkessia","name":"Карачаево-Черкесская Республика","district":"СКФО","population":470000,"area":14277,"avgTemp":7.8,"lat":43.77,"lon":41.77,"bbox":[40.963,43.232,42.577,44.308],"aliases":["Karachay-Cherkessia","Karachay-Cherkess Republic","Карачаево-Черкесская Республика"]},{"id":"karelia","name":"Республика Карелия","district":"СЗФО","population":527000,"area":180520,"avgTemp":2.1,"lat":61.79,"lon":34.36,"bbox":[31.489,59.876,37.231,63.704],"aliases":["Karelia","Republic of Karelia","Республика Карелия"]},{"id":"komi","name":"Республика Коми","district":"СЗФО","population":725000,"area":416774,"avgTemp":-1.0,"lat":61.67,"lon":50.82,"bbox":[46.458,58.762,55.182,64.578],"aliases":["Komi","Komi Republic","Republic of Komi","Республика Коми"]},{"id":"crimea","name":"Республика Крым","district":"ЮФО","population":1930000,"area":26081,"avgTemp":10.8,"lat":45.3,"lon":34.2,"bbox":[33.109,44.573,35.291,46.027],"aliases":["Crimea","Republic of Crimea","Autonomous Republic of Crimea","Республика Крым"]},{"id":"luhansk_people_s_republic","name":"Луганская Народная Республика","district":"ЮФО","population":1500000,"area":26684,"avgTemp":8.8,"lat":48.57,"lon":39.3,"bbox":[38.196,47.834,40.404,49.306],"aliases":["Luhansk People's Republic","Lugansk People's Republic","Luhansk People’s Republic","Luhansk","Lugansk","Luhansk Oblast","Луганская Народная Республика","ЛНР"]},{"id":"mari_el","name":"Республика Марий Эл","district":"ПФО","population":670000,"area":23375,"avgTemp":3.8,"lat":56.63,"lon":47.87,"bbox":[46.837,55.941,48.903,57.319],"aliases":["Mari El","Mariy El","Republic of Mari El","Республика Марий Эл"]},{"id":"mordovia","name":"Республика Мордовия","district":"ПФО","population":770000,"area":26128,"avgTemp":4.5,"lat":54.18,"lon":45.18,"bbox":[44.088,53.452,46.272,54.908],"aliases":["Mordovia","Republic of Mordovia","Республика Мордовия"]},{"id":"sakha","name":"Республика Саха (Якутия)","district":"ДФО","population":1000000,"area":3083523,"avgTemp":-8.8,"lat":62.03,"lon":129.73,"bbox":[117.865,55.03,141.595,69.03],"aliases":["Sakha","Sakha Republic","Yakutia","Republic of Sakha","Республика Саха (Якутия)"]},{"id":"north_ossetia_alania","name":"Республика Северная Осетия — Алания","district":"СКФО","population":690000,"area":7987,"avgTemp":8.2,"lat":43.02,"lon":44.68,"bbox":[44.076,42.617,45.284,43.423],"aliases":["North Ossetia-Alania","North Ossetia","Republic of North Ossetia-Alania","Республика Северная Осетия - Алания"]},{"id":"tatarstan","name":"Республика Татарстан","district":"ПФО","population":4000000,"area":67847,"avgTemp":4.8,"lat":55.79,"lon":49.12,"bbox":[47.36,54.617,50.88,56.963],"aliases":["Tatarstan","Republic of Tatarstan","Республика Татарстан"]},{"id":"tuva","name":"Республика Тыва","district":"СФО","population":340000,"area":168604,"avgTemp":-4.5,"lat":51.72,"lon":94.45,"bbox":[91.676,49.87,97.224,53.57],"aliases":["Tuva","Tyva","Republic of Tuva","Республика Тыва"]},{"id":"udmurtia","name":"Удмуртская Республика","district":"ПФО","population":1450000,"area":42061,"avgTemp":3.0,"lat":56.85,"lon":53.2,"bbox":[51.814,55.926,54.586,57.774],"aliases":["Udmurtia","Udmurt Republic","Удмуртская Республика"]},{"id":"khakassia","name":"Республика Хакасия","district":"СФО","population":530000,"area":61569,"avgTemp":1.0,"lat":53.72,"lon":91.43,"bbox":[89.753,52.602,93.107,54.838],"aliases":["Khakassia","Republic of Khakassia","Республика Хакасия"]},{"id":"chechnya","name":"Чеченская Республика","district":"СКФО","population":1530000,"area":16165,"avgTemp":10.0,"lat":43.32,"lon":45.7,"bbox":[44.841,42.747,46.559,43.893],"aliases":["Chechnya","Chechen Republic","Чеченская Республика"]},{"id":"chuvashia","name":"Чувашская Республика","district":"ПФО","population":1190000,"area":18343,"avgTemp":4.2,"lat":56.14,"lon":47.25,"bbox":[46.335,55.53,48.165,56.75],"aliases":["Chuvashia","Chuvash Republic","Чувашская Республика"]},{"id":"altai_krai","name":"Алтайский край","district":"СФО","population":2100000,"area":167996,"avgTemp":2.3,"lat":53.35,"lon":83.78,"bbox":[81.011,51.504,86.549,55.196],"aliases":["Altai Krai","Алтайский край"]},{"id":"zabaykalsky_krai","name":"Забайкальский край","district":"ДФО","population":990000,"area":431892,"avgTemp":-1.0,"lat":52.03,"lon":113.5,"bbox":[109.06,49.07,117.94,54.99],"aliases":["Zabaykalsky Krai","Transbaikal Krai","Забайкальский край"]},{"id":"kamchatka_krai","name":"Камчатский край","district":"ДФО","population":288000,"area":464275,"avgTemp":-1.5,"lat":53.02,"lon":158.65,"bbox":[154.046,49.951,163.254,56.089],"aliases":["Kamchatka Krai","Kamchatka","Камчатский край"]},{"id":"krasnodar_krai","name":"Краснодарский край","district":"ЮФО","population":5830000,"area":75485,"avgTemp":11.9,"lat":45.04,"lon":38.98,"bbox":[37.124,43.802,40.836,46.278],"aliases":["Krasnodar Krai","Краснодарский край"]},{"id":"krasnoyarsk_krai","name":"Красноярский край","district":"СФО","population":2857000,"area":2366797,"avgTemp":-0.6,"lat":56.02,"lon":92.87,"bbox":[82.475,49.09,103.265,62.95],"aliases":["Krasnoyarsk Krai","Красноярский край"]},{"id":"perm_krai","name":"Пермский край","district":"ПФО","population":2500000,"area":160236,"avgTemp":2.2,"lat":58.01,"lon":56.23,"bbox":[53.525,56.207,58.935,59.813],"aliases":["Perm Krai","Пермский край"]},{"id":"primorsky_krai","name":"Приморский край","district":"ДФО","population":1819000,"area":164673,"avgTemp":4.9,"lat":43.12,"lon":131.88,"bbox":[129.138,41.292,134.622,44.948],"aliases":["Primorsky Krai","Primorye","Приморский край"]},{"id":"stavropol_krai","name":"Ставропольский край","district":"СКФО","population":2890000,"area":66160,"avgTemp":9.5,"lat":45.05,"lon":41.97,"bbox":[40.232,43.891,43.708,46.209],"aliases":["Stavropol Krai","Ставропольский край"]},{"id":"khabarovsk_krai","name":"Хабаровский край","district":"ДФО","population":1285000,"area":787633,"avgTemp":1.6,"lat":48.48,"lon":135.07,"bbox":[129.073,44.482,141.067,52.478],"aliases":["Khabarovsk Krai","Хабаровский край"]},{"id":"amur_oblast","name":"Амурская область","district":"ДФО","population":760000,"area":361908,"avgTemp":-0.3,"lat":50.29,"lon":127.54,"bbox":[123.475,47.58,131.605,53.0],"aliases":["Amur Oblast","Амурская область"]},{"id":"arkhangelsk_oblast","name":"Архангельская область","district":"СЗФО","population":968000,"area":413103,"avgTemp":1.5,"lat":64.54,"lon":40.54,"bbox":[36.197,61.645,44.883,67.435],"aliases":["Arkhangelsk Oblast","Архангельская область"]},{"id":"astrakhan_oblast","name":"Астраханская область","district":"ЮФО","population":960000,"area":49024,"avgTemp":10.5,"lat":46.35,"lon":48.04,"bbox":[46.544,45.353,49.536,47.347],"aliases":["Astrakhan Oblast","Астраханская область"]},{"id":"belgorod_oblast","name":"Белгородская область","district":"ЦФО","population":1510000,"area":27134,"avgTemp":7.2,"lat":50.6,"lon":36.6,"bbox":[35.487,49.858,37.713,51.342],"aliases":["Belgorod Oblast","Белгородская область"]},{"id":"bryansk_oblast","name":"Брянская область","district":"ЦФО","population":1160000,"area":34857,"avgTemp":5.8,"lat":53.25,"lon":34.37,"bbox":[33.109,52.409,35.631,54.091],"aliases":["Bryansk Oblast","Брянская область"]},{"id":"vladimir_oblast","name":"Владимирская область","district":"ЦФО","population":1340000,"area":29084,"avgTemp":5.0,"lat":56.13,"lon":40.42,"bbox":[39.268,55.362,41.572,56.898],"aliases":["Vladimir Oblast","Владимирская область"]},{"id":"volgograd_oblast","name":"Волгоградская область","district":"ЮФО","population":2470000,"area":112877,"avgTemp":8.0,"lat":48.71,"lon":44.51,"bbox":[42.24,47.197,46.78,50.223],"aliases":["Volgograd Oblast","Волгоградская область"]},{"id":"vologda_oblast","name":"Вологодская область","district":"СЗФО","population":1130000,"area":144527,"avgTemp":3.0,"lat":59.22,"lon":39.89,"bbox":[37.321,57.508,42.459,60.932],"aliases":["Vologda Oblast","Вологодская область"]},{"id":"voronezh_oblast","name":"Воронежская область","district":"ЦФО","population":2270000,"area":52216,"avgTemp":6.9,"lat":51.66,"lon":39.2,"bbox":[37.656,50.631,40.744,52.689],"aliases":["Voronezh Oblast","Воронежская область"]},{"id":"zaporizhzhia_oblast","name":"Запорожская область","district":"ЮФО","population":1600000,"area":27183,"avgTemp":10.0,"lat":47.84,"lon":35.14,"bbox":[34.026,47.097,36.254,48.583],"aliases":["Zaporizhzhia Oblast","Zaporozhye Oblast","Zaporizhia","Запорожская область"]},{"id":"ivanovo_oblast","name":"Ивановская область","district":"ЦФО","population":915000,"area":21437,"avgTemp":4.4,"lat":57.0,"lon":40.97,"bbox":[39.981,56.34,41.959,57.66],"aliases":["Ivanovo Oblast","Ивановская область"]},{"id":"irkutsk_oblast","name":"Иркутская область","district":"СФО","population":2350000,"area":767900,"avgTemp":0.2,"lat":52.28,"lon":104.28,"bbox":[98.359,48.333,110.201,56.227],"aliases":["Irkutsk Oblast","Иркутская область"]},{"id":"kaliningrad_oblast","name":"Калининградская область","district":"СЗФО","population":1031000,"area":15125,"avgTemp":8.4,"lat":54.71,"lon":20.45,"bbox":[19.619,54.156,21.281,55.264],"aliases":["Kaliningrad Oblast","Калининградская область"]},{"id":"kaluga_oblast","name":"Калужская область","district":"ЦФО","population":1060000,"area":29777,"avgTemp":5.5,"lat":54.53,"lon":36.27,"bbox":[35.104,53.753,37.436,55.307],"aliases":["Kaluga Oblast","Калужская область"]},{"id":"kemerovo_oblast","name":"Кемеровская область — Кузбасс","district":"СФО","population":2590000,"area":95725,"avgTemp":1.5,"lat":55.35,"lon":86.09,"bbox":[83.999,53.956,88.181,56.744],"aliases":["Kemerovo Oblast","Kuzbass","Кемеровская область - Кузбасс"]},{"id":"kirov_oblast","name":"Кировская область","district":"ПФО","population":1150000,"area":120374,"avgTemp":2.5,"lat":58.6,"lon":49.65,"bbox":[47.306,57.037,51.994,60.163],"aliases":["Kirov Oblast","Кировская область"]},{"id":"kostroma_oblast","name":"Костромская область","district":"ЦФО","population":580000,"area":60211,"avgTemp":3.6,"lat":57.77,"lon":40.93,"bbox":[39.272,56.665,42.588,58.875],"aliases":["Kostroma Oblast","Костромская область"]},{"id":"kurgan_oblast","name":"Курганская область","district":"УрФО","population":780000,"area":71488,"avgTemp":2.4,"lat":55.45,"lon":65.35,"bbox":[63.543,54.246,67.157,56.654],"aliases":["Kurgan Oblast","Курганская область"]},{"id":"kursk_oblast","name":"Курская область","district":"ЦФО","population":1080000,"area":29997,"avgTemp":6.4,"lat":51.73,"lon":36.19,"bbox":[35.02,50.95,37.36,52.51],"aliases":["Kursk Oblast","Курская область"]},{"id":"leningrad_oblast","name":"Ленинградская область","district":"СЗФО","population":2060000,"area":83908,"avgTemp":4.7,"lat":59.94,"lon":30.31,"bbox":[28.353,58.635,32.267,61.245],"aliases":["Leningrad Oblast","Ленинградская область"]},{"id":"lipetsk_oblast","name":"Липецкая область","district":"ЦФО","population":1120000,"area":24047,"avgTemp":6.0,"lat":52.61,"lon":39.59,"bbox":[38.542,51.911,40.638,53.309],"aliases":["Lipetsk Oblast","Липецкая область"]},{"id":"magadan_oblast","name":"Магаданская область","district":"ДФО","population":135000,"area":462464,"avgTemp":-5.0,"lat":59.57,"lon":150.8,"bbox":[146.205,56.507,155.395,62.633],"aliases":["Magadan Oblast","Магаданская область"]},{"id":"moscow_oblast","name":"Московская область","district":"ЦФО","population":8600000,"area":44329,"avgTemp":5.8,"lat":55.5,"lon":38.0,"bbox":[36.577,54.552,39.423,56.448],"aliases":["Moscow Oblast","Московская область"]},{"id":"murmansk_oblast","name":"Мурманская область","district":"СЗФО","population":657000,"area":144902,"avgTemp":0.0,"lat":68.97,"lon":33.08,"bbox":[30.508,67.255,35.652,70.685],"aliases":["Murmansk Oblast","Мурманская область"]},{"id":"nizhny_novgorod_oblast","name":"Нижегородская область","district":"ПФО","population":3080000,"area":76624,"avgTemp":4.4,"lat":56.33,"lon":44.0,"bbox":[42.13,55.083,45.87,57.577],"aliases":["Nizhny Novgorod Oblast","Nizhniy Novgorod Oblast","Нижегородская область"]},{"id":"novgorod_oblast","name":"Новгородская область","district":"СЗФО","population":575000,"area":54501,"avgTemp":4.5,"lat":58.52,"lon":31.27,"bbox":[29.693,57.468,32.847,59.572],"aliases":["Novgorod Oblast","Новгородская область"]},{"id":"novosibirsk_oblast","name":"Новосибирская область","district":"СФО","population":2790000,"area":177756,"avgTemp":1.9,"lat":55.03,"lon":82.92,"bbox":[80.071,53.131,85.769,56.929],"aliases":["Novosibirsk Oblast","Новосибирская область"]},{"id":"omsk_oblast","name":"Омская область","district":"СФО","population":1824000,"area":141140,"avgTemp":2.1,"lat":54.99,"lon":73.37,"bbox":[70.832,53.298,75.908,56.682],"aliases":["Omsk Oblast","Омская область"]},{"id":"orenburg_oblast","name":"Оренбургская область","district":"ПФО","population":1860000,"area":123702,"avgTemp":4.7,"lat":51.77,"lon":55.1,"bbox":[52.724,50.186,57.476,53.354],"aliases":["Orenburg Oblast","Оренбургская область"]},{"id":"oryol_oblast","name":"Орловская область","district":"ЦФО","population":700000,"area":24652,"avgTemp":5.7,"lat":52.97,"lon":36.07,"bbox":[35.009,52.263,37.131,53.677],"aliases":["Oryol Oblast","Orel Oblast","Орловская область"]},{"id":"penza_oblast","name":"Пензенская область","district":"ПФО","population":1260000,"area":43352,"avgTemp":5.0,"lat":53.2,"lon":45.0,"bbox":[43.593,52.262,46.407,54.138],"aliases":["Penza Oblast","Пензенская область"]},{"id":"pskov_oblast","name":"Псковская область","district":"СЗФО","population":590000,"area":55399,"avgTemp":5.0,"lat":57.82,"lon":28.33,"bbox":[26.74,56.76,29.92,58.88],"aliases":["Pskov Oblast","Псковская область"]},{"id":"rostov_oblast","name":"Ростовская область","district":"ЮФО","population":4180000,"area":100967,"avgTemp":9.6,"lat":47.23,"lon":39.7,"bbox":[37.553,45.799,41.847,48.661],"aliases":["Rostov Oblast","Ростовская область"]},{"id":"ryazan_oblast","name":"Рязанская область","district":"ЦФО","population":1080000,"area":39605,"avgTemp":5.4,"lat":54.63,"lon":39.74,"bbox":[38.395,53.734,41.085,55.526],"aliases":["Ryazan Oblast","Рязанская область"]},{"id":"samara_oblast","name":"Самарская область","district":"ПФО","population":3120000,"area":53565,"avgTemp":5.8,"lat":53.19,"lon":50.11,"bbox":[48.546,52.147,51.674,54.233],"aliases":["Samara Oblast","Самарская область"]},{"id":"saratov_oblast","name":"Саратовская область","district":"ПФО","population":2370000,"area":101240,"avgTemp":6.4,"lat":51.53,"lon":46.03,"bbox":[43.88,50.097,48.18,52.963],"aliases":["Saratov Oblast","Саратовская область"]},{"id":"sakhalin_oblast","name":"Сахалинская область","district":"ДФО","population":458000,"area":87101,"avgTemp":1.5,"lat":46.96,"lon":142.73,"bbox":[140.736,45.631,144.724,48.289],"aliases":["Sakhalin Oblast","Сахалинская область"]},{"id":"sverdlovsk_oblast","name":"Свердловская область","district":"УрФО","population":4239000,"area":194307,"avgTemp":1.9,"lat":56.84,"lon":60.61,"bbox":[57.632,54.854,63.588,58.826],"aliases":["Sverdlovsk Oblast","Свердловская область"]},{"id":"smolensk_oblast","name":"Смоленская область","district":"ЦФО","population":880000,"area":49779,"avgTemp":5.3,"lat":54.78,"lon":32.04,"bbox":[30.532,53.775,33.548,55.785],"aliases":["Smolensk Oblast","Смоленская область"]},{"id":"tambov_oblast","name":"Тамбовская область","district":"ЦФО","population":980000,"area":34462,"avgTemp":6.2,"lat":52.72,"lon":41.45,"bbox":[40.196,51.884,42.704,53.556],"aliases":["Tambov Oblast","Тамбовская область"]},{"id":"tver_oblast","name":"Тверская область","district":"ЦФО","population":1200000,"area":84201,"avgTemp":4.1,"lat":56.86,"lon":35.9,"bbox":[33.939,55.553,37.861,58.167],"aliases":["Tver Oblast","Тверская область"]},{"id":"tomsk_oblast","name":"Томская область","district":"СФО","population":1050000,"area":314391,"avgTemp":-0.6,"lat":56.5,"lon":84.97,"bbox":[81.181,53.974,88.759,59.026],"aliases":["Tomsk Oblast","Томская область"]},{"id":"tula_oblast","name":"Тульская область","district":"ЦФО","population":1460000,"area":25679,"avgTemp":5.9,"lat":54.2,"lon":37.62,"bbox":[36.537,53.478,38.703,54.922],"aliases":["Tula Oblast","Тульская область"]},{"id":"tyumen_oblast","name":"Тюменская область","district":"УрФО","population":1616000,"area":160122,"avgTemp":1.0,"lat":57.15,"lon":65.53,"bbox":[62.826,55.348,68.234,58.952],"aliases":["Tyumen Oblast","Тюменская область"]},{"id":"ulyanovsk_oblast","name":"Ульяновская область","district":"ПФО","population":1190000,"area":37181,"avgTemp":5.0,"lat":54.32,"lon":48.4,"bbox":[47.097,53.451,49.703,55.189],"aliases":["Ulyanovsk Oblast","Ульяновская область"]},{"id":"kherson_oblast","name":"Херсонская область","district":"ЮФО","population":1000000,"area":28461,"avgTemp":10.5,"lat":46.64,"lon":32.62,"bbox":[31.48,45.88,33.76,47.4],"aliases":["Kherson Oblast","Херсонская область"]},{"id":"chelyabinsk_oblast","name":"Челябинская область","district":"УрФО","population":3415000,"area":87900,"avgTemp":2.5,"lat":55.16,"lon":61.4,"bbox":[59.397,53.825,63.403,56.495],"aliases":["Chelyabinsk Oblast","Челябинская область"]},{"id":"yaroslavl_oblast","name":"Ярославская область","district":"ЦФО","population":1200000,"area":36177,"avgTemp":4.0,"lat":57.62,"lon":39.89,"bbox":[38.605,56.763,41.175,58.477],"aliases":["Yaroslavl Oblast","Ярославская область"]},{"id":"moscow","name":"Москва","district":"ЦФО","population":13100000,"area":2561,"avgTemp":6.8,"lat":55.76,"lon":37.62,"bbox":[37.278,55.532,37.962,55.988],"aliases":["Moscow","Moskva","City of Moscow","Moscow City","Москва"]},{"id":"saint_petersburg","name":"Санкт-Петербург","district":"СЗФО","population":5600000,"area":1439,"avgTemp":5.8,"lat":59.93,"lon":30.36,"bbox":[30.104,59.73,30.616,60.13],"aliases":["Saint Petersburg","St Petersburg","Sankt-Peterburg","St. Petersburg","Санкт-Петербург"]},{"id":"sevastopol","name":"Севастополь","district":"ЮФО","population":560000,"area":864,"avgTemp":11.7,"lat":44.62,"lon":33.52,"bbox":[33.27,44.42,33.77,44.82],"aliases":["Sevastopol","City of Sevastopol","Севастополь"]},{"id":"jewish_autonomous_oblast","name":"Еврейская автономная область","district":"ДФО","population":150000,"area":36266,"avgTemp":0.5,"lat":48.79,"lon":132.92,"bbox":[131.633,47.932,134.207,49.648],"aliases":["Jewish Autonomous Oblast","Еврейская автономная область"]},{"id":"nenets_autonomous_okrug","name":"Ненецкий автономный округ","district":"СЗФО","population":41000,"area":176810,"avgTemp":-4.5,"lat":67.68,"lon":53.0,"bbox":[50.159,65.786,55.841,69.574],"aliases":["Nenets Autonomous Okrug","Ненецкий автономный округ"]},{"id":"khanty_mansi_autonomous_okrug","name":"Ханты-Мансийский автономный округ — Югра","district":"УрФО","population":1730000,"area":534801,"avgTemp":-2.0,"lat":61.0,"lon":69.0,"bbox":[64.059,57.706,73.941,64.294],"aliases":["Khanty-Mansi Autonomous Okrug","Khanty-Mansiysk Autonomous Okrug","Khanty-Mansiysk Autonomous Okrug – Ugra","Khanty-Mansiysk Autonomous Okrug - Ugra","Khanty-Mansiy Autonomous Okrug","Khanty-Mansi Autonomous Okrug – Yugra","Yugra","Ugra","Ханты-Мансийский автономный округ - Югра","Ханты-Мансийский автономный округ — Югра","ХМАО","Югра"]},{"id":"chukotka_autonomous_okrug","name":"Чукотский автономный округ","district":"ДФО","population":47000,"area":721481,"avgTemp":-6.5,"lat":66.0,"lon":170.0,"bbox":[164.261,62.174,175.739,69.826],"aliases":["Chukotka Autonomous Okrug","Chukotka","Чукотский автономный округ"]},{"id":"yamalo_nenets_autonomous_okrug","name":"Ямало-Ненецкий автономный округ","district":"УрФО","population":510000,"area":769250,"avgTemp":-7.0,"lat":66.5,"lon":75.5,"bbox":[69.574,62.549,81.426,70.451],"aliases":["Yamalo-Nenets Autonomous Okrug","Yamalia","Ямало-Ненецкий автономный округ"]}];
+
+    const guessForm = document.getElementById('guessForm');
+    const guessInput = document.getElementById('guessInput');
+    const restartBtn = document.getElementById('restartBtn');
+    const statusBox = document.getElementById('statusBox');
+    const attemptRows = document.getElementById('attemptRows');
+    const attemptsNow = document.getElementById('attemptsNow');
+    const subjectList = document.getElementById('subjectList');
+    const mapSourceLine = document.getElementById('mapSourceLine');
+
+    let target = null;
+    let guesses = [];
+    let gameOver = false;
+    let map = null;
+    let subjectFC = null;
+    let popup = null;
+    let mapReady = false;
+
+    function normalize(value) {
+      return String(value)
+        .trim()
+        .toLowerCase()
+        .replaceAll('ё', 'е')
+        .replace(/[–—]/g, '-')
+        .replace(/\s+/g, ' ');
+    }
+
+    const byName = new Map();
+    for (const s of SUBJECTS) {
+      byName.set(normalize(s.name), s);
+      for (const a of (s.aliases || [])) byName.set(normalize(a), s);
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat('ru-RU').format(value);
+    }
+
+    function toRad(deg) { return deg * Math.PI / 180; }
+
+    function getPoint(subject) {
+      return subject.mapPoint || { lat: subject.lat, lon: subject.lon };
+    }
+
+    function normalizeLonDelta(delta) {
+      // Берём кратчайшую разницу долгот, чтобы Чукотка/Камчатка не ломали направление через 180-й меридиан.
+      return ((delta + 540) % 360) - 180;
+    }
+
+    function haversineKm(a, b) {
+      // Расстояние считается между условными центрами субъектов:
+      // если загружен ADM1 — между центрами их контуров, иначе между резервными координатами из базы.
+      const pa = getPoint(a);
+      const pb = getPoint(b);
+      const R = 6371;
+      const dLat = toRad(pb.lat - pa.lat);
+      const dLon = toRad(normalizeLonDelta(pb.lon - pa.lon));
+      const lat1 = toRad(pa.lat);
+      const lat2 = toRad(pb.lat);
+      const h = Math.sin(dLat/2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon/2) ** 2;
+      return Math.round(2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h)));
+    }
+
+    function bearingDegrees(from, to) {
+      // Для игры направление делаем «по карте», а не по ортодромии через полюс:
+      // dx — запад/восток с учётом 180-го меридиана, dy — юг/север.
+      const a = getPoint(from);
+      const b = getPoint(to);
+      const dLon = normalizeLonDelta(b.lon - a.lon);
+      const dLat = b.lat - a.lat;
+      const avgLat = toRad((a.lat + b.lat) / 2);
+      const dx = dLon * Math.cos(avgLat);
+      const dy = dLat;
+      if (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9) return 0;
+      return ((Math.atan2(dx, dy) * 180 / Math.PI) + 360) % 360;
+    }
+
+    function directionCode(deg) {
+      return ['N','NE','E','SE','S','SW','W','NW'][Math.round(deg / 45) % 8];
+    }
+
+    function directionArrow(code) {
+      return {N:'↑', NE:'↗', E:'→', SE:'↘', S:'↓', SW:'↙', W:'←', NW:'↖'}[code] || '';
+    }
+
+    function compareNumeric(value, targetValue, exactTolerance, closeTolerance) {
+      const diff = value - targetValue;
+      if (Math.abs(diff) <= exactTolerance) return { mark: '✓', cls: 'ok' };
+      if (Math.abs(diff) <= closeTolerance) return { mark: diff < 0 ? '↑' : '↓', cls: 'close' };
+      return { mark: diff < 0 ? '↑' : '↓', cls: 'neutral' };
+    }
+
+    function bboxToPolygon(bbox) {
+      const [minLon, minLat, maxLon, maxLat] = bbox;
+      return {
+        type: 'Polygon',
+        coordinates: [[
+          [minLon, minLat], [maxLon, minLat], [maxLon, maxLat], [minLon, maxLat], [minLon, minLat]
+        ]]
+      };
+    }
+
+    function featureForSubject(subject, geometry = null) {
+      return {
+        type: 'Feature',
+        properties: {
+          id: subject.id,
+          name: subject.name,
+          status: 'idle'
+        },
+        geometry: geometry || bboxToPolygon(subject.bbox)
+      };
+    }
+
+    function namesForFeature(feature) {
+      const p = feature.properties || {};
+      const vals = Object.values(p)
+        .filter(v => typeof v === 'string' && v.trim().length > 1)
+        .flatMap(v => [v, v.replace(/ё/g, 'е')]);
+      return vals.map(normalize);
+    }
+
+    function looseName(value) {
+      return normalize(value)
+        .replace(/^(republic of|republic|city of) /, '')
+        .replace(/ (oblast|krai|republic|autonomous okrug|autonomous oblast)$/,'')
+        .replace(/^(республика|город федерального значения) /,'')
+        .replace(/ (область|край|автономный округ|автономная область)$/,'')
+        .replace(/[^a-zа-я0-9]+/g,' ')
+        .trim();
+    }
+
+    function collectCoords(geometry, out = []) {
+      if (!geometry) return out;
+      if (geometry.type === 'Point') {
+        out.push(geometry.coordinates);
+      } else if (geometry.type === 'Polygon') {
+        for (const ring of geometry.coordinates || []) {
+          for (const c of ring || []) out.push(c);
+        }
+      } else if (geometry.type === 'MultiPolygon') {
+        for (const poly of geometry.coordinates || []) {
+          for (const ring of poly || []) {
+            for (const c of ring || []) out.push(c);
+          }
+        }
+      }
+      return out;
+    }
+
+    function centerOfGeometry(geometry) {
+      const coords = collectCoords(geometry);
+      if (!coords.length) return null;
+
+      // Центр через среднее направление на сфере, чтобы регионы около 180-го меридиана не съезжали.
+      let x = 0, y = 0, z = 0;
+      for (const c of coords) {
+        const lon = toRad(c[0]);
+        const lat = toRad(c[1]);
+        x += Math.cos(lat) * Math.cos(lon);
+        y += Math.cos(lat) * Math.sin(lon);
+        z += Math.sin(lat);
+      }
+      const n = coords.length;
+      x /= n; y /= n; z /= n;
+      const lon = Math.atan2(y, x) * 180 / Math.PI;
+      const hyp = Math.sqrt(x * x + y * y);
+      const lat = Math.atan2(z, hyp) * 180 / Math.PI;
+      return { lon, lat };
+    }
+
+    function updateSubjectPointFromGeometry(subject, geometry) {
+      const center = centerOfGeometry(geometry);
+      if (center && Number.isFinite(center.lat) && Number.isFinite(center.lon)) {
+        subject.mapPoint = center;
+      }
+    }
+
+    function buildFallbackFC() {
+      return { type: 'FeatureCollection', features: SUBJECTS.map(s => featureForSubject(s)) };
+    }
+
+    async function fetchAdm1(a3) {
+      try {
+        const res = await fetch(`/adm1/${a3}`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.features || [];
+      } catch (err) {
+        return [];
+      }
+    }
+
+    function uniqueFeatures(features) {
+      const seen = new Set();
+      const out = [];
+      for (const ft of features) {
+        const p = ft.properties || {};
+        const key = p.shapeID || `${p.shapeGroup || ''}:${p.shapeName || p.name || JSON.stringify(ft.geometry).slice(0, 80)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(ft);
+      }
+      return out;
+    }
+
+    async function buildSubjectsFC() {
+      const fallback = buildFallbackFC();
+      const rusFeatures = await fetchAdm1('RUS');
+      const ukrFeatures = await fetchAdm1('UKR');
+
+      const ukrBoundarySubjectIds = new Set([
+        'crimea',
+        'sevastopol',
+        'donetsk_people_s_republic',
+        'luhansk_people_s_republic',
+        'kherson_oblast',
+        'zaporizhzhia_oblast'
+      ]);
+
+      const allFeatures = uniqueFeatures([...rusFeatures, ...ukrFeatures]);
+      if (!allFeatures.length) {
+        mapSourceLine.textContent = 'Контуры: fallback-полигоны прототипа для всех субъектов. Для настоящих контуров положи ADM1.geojson рядом с server.py.';
+        return fallback;
+      }
+
+      const used = new Set();
+      let matchedRus = 0;
+      let matchedUkr = 0;
+
+      const matched = SUBJECTS.map(subject => {
+        const exactNeedles = [normalize(subject.name), ...(subject.aliases || []).map(normalize)];
+        const looseNeedles = exactNeedles.map(looseName).filter(Boolean);
+        const candidates = ukrBoundarySubjectIds.has(subject.id) ? [...ukrFeatures, ...rusFeatures] : [...rusFeatures, ...ukrFeatures];
+
+        function findMatch(mode) {
+          return candidates.find((ft) => {
+            const idx = allFeatures.indexOf(ft);
+            if (used.has(idx)) return false;
+            const names = namesForFeature(ft);
+
+            if (mode === 'exact') {
+              return names.some(n => exactNeedles.includes(n));
+            }
+
+            const looseNames = names.map(looseName).filter(Boolean);
+            return looseNames.some(n => looseNeedles.includes(n));
+          });
+        }
+
+        // Важно: сначала точное имя/alias, только потом «мягкое» сравнение.
+        // Иначе Moscow Oblast мог схватить Moscow, а Altai Republic — Altai Krai.
+        const match = findMatch('exact') || findMatch('loose');
+
+        if (match) {
+          const idx = allFeatures.indexOf(match);
+          used.add(idx);
+          const group = String((match.properties || {}).shapeGroup || '').toUpperCase();
+          if (group === 'UKR') matchedUkr += 1;
+          else matchedRus += 1;
+          updateSubjectPointFromGeometry(subject, match.geometry);
+          return featureForSubject(subject, match.geometry);
+        }
+
+        updateSubjectPointFromGeometry(subject, bboxToPolygon(subject.bbox));
+        return featureForSubject(subject);
+      });
+
+      const matchedCount = matchedRus + matchedUkr;
+      mapSourceLine.textContent = `Контуры: ADM1 ${matchedCount}/${SUBJECTS.length}; RUS: ${matchedRus}, UKR: ${matchedUkr}; остальные — fallback.`;
+      return { type: 'FeatureCollection', features: matched };
+    }
+
+    function subjectStatus(subject) {
+      if (target && subject.id === target.id && guesses.some(g => g.id === subject.id)) return 'correct';
+      if (guesses.some(g => g.id === subject.id)) return 'guessed';
+      return 'idle';
+    }
+
+    function refreshSubjectStatuses() {
+      if (!subjectFC) return;
+      for (const ft of subjectFC.features) {
+        const subject = SUBJECTS.find(s => s.id === ft.properties.id);
+        ft.properties.status = subject ? subjectStatus(subject) : 'idle';
+      }
+      if (map && map.getSource('subjects')) map.getSource('subjects').setData(JSON.parse(JSON.stringify(subjectFC)));
+    }
+
+    async function initMap() {
+      subjectFC = await buildSubjectsFC();
+
+      map = new maplibregl.Map({
+        container: 'map',
+        style: {
+          version: 8,
+          sources: {
+            osm: {
+              type: 'raster',
+              tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+              tileSize: 256,
+              attribution: '© OpenStreetMap contributors'
+            }
+          },
+          layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
+        },
+        center: [86, 61],
+        zoom: 3,
+        maxZoom: 12
+      });
+
+      map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+      return new Promise((resolve) => {
+        map.on('load', () => {
+        map.addSource('subjects', { type: 'geojson', data: subjectFC });
+        map.addLayer({
+          id: 'subjects-fill',
+          type: 'fill',
+          source: 'subjects',
+          paint: {
+            'fill-color': [
+              'match', ['get', 'status'],
+              'correct', '#22c55e',
+              'guessed', '#facc15',
+              'rgba(37, 99, 235, 0.10)'
+            ],
+            'fill-opacity': [
+              'match', ['get', 'status'],
+              'correct', 0.55,
+              'guessed', 0.55,
+              0.16
+            ]
+          }
+        });
+        map.addLayer({
+          id: 'subjects-line',
+          type: 'line',
+          source: 'subjects',
+          paint: {
+            'line-color': [
+              'match', ['get', 'status'],
+              'correct', '#15803d',
+              'guessed', '#ca8a04',
+              '#2563eb'
+            ],
+            'line-width': [
+              'match', ['get', 'status'],
+              'correct', 3,
+              'guessed', 2,
+              1
+            ],
+            'line-opacity': 0.8
+          }
+        });
+
+        map.on('mouseenter', 'subjects-fill', () => map.getCanvas().style.cursor = 'pointer');
+        map.on('mouseleave', 'subjects-fill', () => map.getCanvas().style.cursor = '');
+        map.on('click', 'subjects-fill', e => {
+          const ft = e.features && e.features[0];
+          if (!ft) return;
+          const name = ft.properties.name;
+          guessInput.value = name;
+          if (popup) popup.remove();
+          popup = new maplibregl.Popup({ closeButton: false, offset: 12 })
+            .setLngLat(e.lngLat)
+            .setHTML(`<b>${name}</b><br><span style="color:#6b7280;font-size:12px;">Нажми «Проверить», чтобы сделать попытку</span>`)
+            .addTo(map);
+        });
+
+        mapReady = true;
+        refreshSubjectStatuses();
+        map.resize();
+        resolve();
+      });
+      });
+    }
+
+    function renderDatalist() {
+      subjectList.innerHTML = SUBJECTS
+        .map(s => `<option value="${s.name.replaceAll('"','&quot;')}"></option>`)
+        .join('');
+    }
+
+    function pickRandomSubject(excludeId = null) {
+      const pool = excludeId ? SUBJECTS.filter(s => s.id !== excludeId) : SUBJECTS;
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function setStatus(text) {
+      statusBox.textContent = text;
+    }
+
+    function renderAttempts() {
+      attemptsNow.textContent = String(guesses.length);
+      if (!guesses.length) {
+        attemptRows.innerHTML = '<tr><td colspan="8" class="empty">Пока нет попыток.</td></tr>';
+        return;
+      }
+
+      attemptRows.innerHTML = guesses.map((guess, index) => {
+        const isCorrect = guess.id === target.id;
+        const pop = compareNumeric(guess.population, target.population, 60000, 350000);
+        const area = compareNumeric(guess.area, target.area, 5000, 60000);
+        const temp = compareNumeric(guess.avgTemp, target.avgTemp, 0.7, 2.0);
+        const districtCls = guess.district === target.district ? 'ok' : 'neutral';
+        const distance = isCorrect ? 0 : haversineKm(guess, target);
+        const distanceCls = isCorrect ? 'ok' : distance <= 800 ? 'close' : 'neutral';
+        const dir = isCorrect ? '✓' : directionCode(bearingDegrees(guess, target));
+        const dirText = isCorrect ? '✓' : `${directionArrow(dir)} ${dir}`;
+
+        return `
+          <tr>
+            <td><b>${index + 1}</b></td>
+            <td class="nameCell"><b>${guess.name}</b><span>${isCorrect ? 'правильный ответ' : 'попытка'}</span></td>
+            <td><span class="pill ${pop.cls}">${formatNumber(guess.population)} ${pop.mark}</span></td>
+            <td><span class="pill ${area.cls}">${formatNumber(guess.area)} км² ${area.mark}</span></td>
+            <td><span class="pill ${temp.cls}">${guess.avgTemp > 0 ? '+' : ''}${guess.avgTemp.toFixed(1)}°C ${temp.mark}</span></td>
+            <td><span class="pill ${districtCls} districtPill" title="${districtTitle(guess.district)}">${guess.district}${guess.district === target.district ? ' ✓' : ''}</span></td>
+            <td><span class="pill ${distanceCls}">${distance === 0 ? '0 км' : '≈ ' + formatNumber(distance) + ' км'}</span></td>
+            <td><span class="pill ${isCorrect ? 'ok' : 'neutral'}">${dirText}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function restartGame() {
+      const old = target;
+      target = pickRandomSubject(old ? old.id : null);
+      guesses = [];
+      gameOver = false;
+      guessInput.value = '';
+      setStatus('Новая игра началась. Угадай субъект за 8 попыток.');
+      renderAttempts();
+      refreshSubjectStatuses();
+      if (popup) popup.remove();
+    }
+
+    function handleGuess(event) {
+      event.preventDefault();
+      if (gameOver) return;
+
+      const subject = byName.get(normalize(guessInput.value));
+      if (!subject) {
+        setStatus('Такого субъекта нет в тестовой базе. Выбери вариант из списка или кликни по карте.');
+        return;
+      }
+
+      if (guesses.some(g => g.id === subject.id)) {
+        setStatus('Этот субъект уже был в попытках. Выбери другой.');
+        return;
+      }
+
+      guesses.push(subject);
+      guessInput.value = '';
+
+      if (subject.id === target.id) {
+        gameOver = true;
+        setStatus(`Верно! Загаданный субъект — ${target.name}.`);
+      } else if (guesses.length >= MAX_ATTEMPTS) {
+        gameOver = true;
+        setStatus(`Попытки закончились. Был загадан субъект: ${target.name}.`);
+      } else {
+        setStatus(`Есть подсказки. Осталось попыток: ${MAX_ATTEMPTS - guesses.length}.`);
+      }
+
+      renderAttempts();
+      refreshSubjectStatuses();
+
+      if (mapReady && map) {
+        refreshSubjectStatuses();
+        map.flyTo({ center: [subject.lon, subject.lat], zoom: Math.max(map.getZoom(), 4.2), speed: 0.8, essential: true });
+      }
+    }
+
+    guessForm.addEventListener('submit', handleGuess);
+    restartBtn.addEventListener('click', restartGame);
+
+    async function startApp() {
+      renderDatalist();
+      guessInput.disabled = true;
+      guessForm.querySelector('button[type="submit"]').disabled = true;
+      setStatus('Загружаю карту и контуры субъектов...');
+      await initMap();
+      restartGame();
+      guessInput.disabled = false;
+      guessForm.querySelector('button[type="submit"]').disabled = false;
+    }
+
+    startApp();
+  </script>
+</body>
+</html>
