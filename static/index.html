@@ -102,7 +102,7 @@
 
     .controls {
       display: grid;
-      grid-template-columns: 1fr auto auto;
+      grid-template-columns: 1fr auto auto auto;
       gap: 8px;
       margin-top: 12px;
     }
@@ -145,6 +145,7 @@
 
     .primary:hover:not(:disabled) { background: var(--blue2); }
 
+    .status:empty { display: none; }
     .status {
       margin-top: 10px;
       border: 1px solid var(--line);
@@ -290,6 +291,121 @@
       .controls { grid-template-columns: 1fr; }
       .legend { left: 16px; right: 16px; border-radius: 14px; justify-content: flex-start; }
     }
+  
+    /* v6 UI cleanup */
+    .topPanel {
+      left: 18px;
+      top: 18px;
+      width: min(560px, calc(100vw - 36px));
+      background: rgba(255,255,255,.96);
+      border: 1px solid rgba(226,232,240,.95);
+      box-shadow: 0 18px 50px rgba(15,23,42,.18);
+      border-radius: 24px;
+      padding: 18px;
+      backdrop-filter: blur(12px);
+    }
+    h1 { margin: 0; font-size: 25px; line-height: 1.1; letter-spacing: -0.03em; }
+    .attemptsBox {
+      min-width: 88px;
+      border: 1px solid #dbe3ef;
+      border-radius: 18px;
+      padding: 10px 12px;
+      background: linear-gradient(180deg, #f8fafc 0%, #eef4fb 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+    }
+    .attemptsBox b { font-size: 24px; letter-spacing: -0.04em; }
+    .controls { gap: 10px; margin-top: 18px; }
+    input, button { border-radius: 16px; padding: 13px 16px; }
+    button { font-weight: 800; transition: transform .15s ease, box-shadow .15s ease, background .15s ease; }
+    button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(15,23,42,.08); }
+    .status { display: none !important; }
+    .content { padding: 18px 22px 28px; }
+    .tableCard {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      border: 1px solid #dbe3ef;
+      border-radius: 24px;
+      box-shadow: 0 14px 38px rgba(15,23,42,.08);
+    }
+    .tableHead {
+      padding: 22px 24px 16px;
+      border-bottom: 1px solid #dbe3ef;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+    .tableHead h2 { font-size: 24px; letter-spacing: -0.03em; }
+    table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 980px; table-layout: fixed; }
+    col.col-num { width: 56px; }
+    col.col-main { width: calc((100% - 56px) / 6); }
+    th, td {
+      padding: 15px 16px;
+      border-bottom: 1px solid #dbe3ef;
+      border-right: 1px solid #e4ebf5;
+    }
+    th:last-child, td:last-child { border-right: 0; }
+    th { background: #f1f5f9; color: #334155; letter-spacing: .08em; font-weight: 900; }
+    tbody tr:hover { background: #f8fbff; }
+    .nameCell b { font-size: 15px; line-height: 1.25; }
+
+    .modalBackdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(15, 23, 42, .48);
+      backdrop-filter: blur(2px);
+    }
+    .modalBackdrop.show { display: flex; }
+    .rulesModal {
+      width: min(560px, calc(100vw - 32px));
+      max-height: calc(100vh - 40px);
+      overflow: auto;
+      background: #fff;
+      color: #0f172a;
+      border: 1px solid #dbe3ef;
+      border-radius: 24px;
+      box-shadow: 0 24px 80px rgba(15, 23, 42, .28);
+      padding: 24px;
+    }
+    .rulesModal h2 {
+      margin: 0 0 12px;
+      font-size: 26px;
+      line-height: 1.1;
+      letter-spacing: -0.04em;
+    }
+    .rulesModal p {
+      margin: 0 0 12px;
+      color: #475569;
+      line-height: 1.55;
+      font-size: 15px;
+    }
+    .rulesList {
+      margin: 14px 0 18px;
+      padding-left: 20px;
+      color: #334155;
+      line-height: 1.55;
+    }
+    .rulesList li { margin: 8px 0; }
+    .modalClose {
+      width: 100%;
+      border: 0;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-weight: 900;
+    }
+    .modalClose:hover { background: var(--blue2); }
+
+    @media (max-width: 760px) {
+      .controls { grid-template-columns: 1fr 1fr; }
+      .controls input { grid-column: 1 / -1; }
+      .topPanel { width: calc(100vw - 24px); left: 12px; top: 12px; }
+    }
+
   </style>
 </head>
 <body>
@@ -314,9 +430,10 @@
           <datalist id="subjectList"></datalist>
           <button class="primary" type="submit">Проверить</button>
           <button type="button" id="restartBtn">Новая</button>
+          <button type="button" id="rulesBtn">Правила игры</button>
         </form>
 
-        <div class="status" id="statusBox">Угадай субъект за 8 попыток.</div>
+        <div class="status" id="statusBox" aria-live="polite"></div>
         <div class="small" id="mapSourceLine" style="display:none;"></div>
       </div>
 
@@ -332,12 +449,21 @@
         <div class="tableHead">
           <div>
             <h2>История попыток</h2>
-            <div class="small">↑ — у правильного субъекта значение больше, ↓ — меньше, ✓ — совпало или очень близко.</div>
+            
           </div>
           
         </div>
         <div class="tableWrap">
           <table>
+            <colgroup>
+              <col class="col-num" />
+              <col class="col-main" />
+              <col class="col-main" />
+              <col class="col-main" />
+              <col class="col-main" />
+              <col class="col-main" />
+              <col class="col-main" />
+            </colgroup>
             <thead>
               <tr>
                 <th>#</th>
@@ -356,6 +482,20 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div class="modalBackdrop" id="rulesModal" aria-hidden="true">
+    <div class="rulesModal" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+      <h2 id="rulesTitle">Правила игры</h2>
+      <p>Задача — угадать загаданный субъект РФ за 8 попыток.</p>
+      <ol class="rulesList">
+        <li>Выбери на карте или введи название субъекта и нажми «Проверить».</li>
+        <li>В таблице появится сравнение выбранного субъекта с правильным ответом.</li>
+        <li>Стрелка ↑ означает, что у правильного субъекта значение больше, ↓ — меньше, ✓ — совпало или очень близко.</li>
+        <li>Подсказка направления показывает, где находится правильный субъект относительно твоей попытки.</li>
+      </ol>
+      <button class="modalClose" type="button" id="rulesCloseBtn">Понятно</button>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -380,6 +520,9 @@
     const guessForm = document.getElementById('guessForm');
     const guessInput = document.getElementById('guessInput');
     const restartBtn = document.getElementById('restartBtn');
+    const rulesBtn = document.getElementById('rulesBtn');
+    const rulesModal = document.getElementById('rulesModal');
+    const rulesCloseBtn = document.getElementById('rulesCloseBtn');
     const statusBox = document.getElementById('statusBox');
     const attemptRows = document.getElementById('attemptRows');
     const attemptsNow = document.getElementById('attemptsNow');
@@ -764,7 +907,8 @@
     }
 
     function setStatus(text) {
-      statusBox.textContent = text;
+      if (statusBox) statusBox.textContent = text || '';
+      if (text && guessInput) guessInput.title = text;
     }
 
     function renderAttempts() {
@@ -803,7 +947,7 @@
       guesses = [];
       gameOver = false;
       guessInput.value = '';
-      setStatus('Угадай субъект за 8 попыток.');
+      setStatus('');
       renderAttempts();
       refreshSubjectStatuses();
       if (popup) popup.remove();
@@ -815,12 +959,20 @@
 
       const subject = byName.get(normalize(guessInput.value));
       if (!subject) {
-        setStatus('Такого субъекта нет в тестовой базе. Выбери вариант из списка или кликни по карте.');
+        const msg = 'Такого субъекта нет в базе. Выбери вариант из списка или кликни по карте.';
+        setStatus(msg);
+        guessInput.setCustomValidity(msg);
+        guessInput.reportValidity();
+        setTimeout(() => guessInput.setCustomValidity(''), 1200);
         return;
       }
 
       if (guesses.some(g => g.id === subject.id)) {
-        setStatus('Этот субъект уже был в попытках. Выбери другой.');
+        const msg = 'Этот субъект уже был в попытках. Выбери другой.';
+        setStatus(msg);
+        guessInput.setCustomValidity(msg);
+        guessInput.reportValidity();
+        setTimeout(() => guessInput.setCustomValidity(''), 1200);
         return;
       }
 
@@ -846,6 +998,29 @@
       }
     }
 
+    function openRules() {
+      if (!rulesModal) return;
+      rulesModal.classList.add('show');
+      rulesModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeRules() {
+      if (!rulesModal) return;
+      rulesModal.classList.remove('show');
+      rulesModal.setAttribute('aria-hidden', 'true');
+    }
+
+    if (rulesBtn) rulesBtn.addEventListener('click', openRules);
+    if (rulesCloseBtn) rulesCloseBtn.addEventListener('click', closeRules);
+    if (rulesModal) {
+      rulesModal.addEventListener('click', (event) => {
+        if (event.target === rulesModal) closeRules();
+      });
+    }
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeRules();
+    });
+
     guessForm.addEventListener('submit', handleGuess);
     restartBtn.addEventListener('click', restartGame);
 
@@ -853,7 +1028,7 @@
       renderDatalist();
       guessInput.disabled = true;
       guessForm.querySelector('button[type="submit"]').disabled = true;
-      setStatus('Загружаю карту и контуры субъектов...');
+      setStatus('');
       await initMap();
       restartGame();
       guessInput.disabled = false;
