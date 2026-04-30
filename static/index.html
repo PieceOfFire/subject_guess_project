@@ -301,7 +301,7 @@
         <div class="topLine">
           <div>
             <h1>Угадай субъект РФ</h1>
-            <div class="small">Карта на MapLibre, как в загруженном проекте. После попытки субъект подсвечивается жёлтым. В базе все субъекты из ст. 65 Конституции РФ.</div>
+            
           </div>
           <div class="attemptsBox">
             <div class="small">попытки</div>
@@ -317,7 +317,7 @@
         </form>
 
         <div class="status" id="statusBox">Угадай субъект за 8 попыток.</div>
-        <div class="small" id="mapSourceLine" style="margin-top:8px;">Контуры: fallback-полигоны прототипа.</div>
+        <div class="small" id="mapSourceLine" style="display:none;"></div>
       </div>
 
       <div class="legend">
@@ -334,7 +334,7 @@
             <h2>История попыток</h2>
             <div class="small">↑ — у правильного субъекта значение больше, ↓ — меньше, ✓ — совпало или очень близко.</div>
           </div>
-          <div class="small">Параметры: население, площадь, средняя температура, федеральный округ, расстояние, направление.</div>
+          
         </div>
         <div class="tableWrap">
           <table>
@@ -346,12 +346,11 @@
                 <th>Площадь</th>
                 <th>Средняя t°</th>
                 <th>Фед. округ</th>
-                <th>Расстояние</th>
                 <th>Направление</th>
               </tr>
             </thead>
             <tbody id="attemptRows">
-              <tr><td colspan="8" class="empty">Пока нет попыток.</td></tr>
+              <tr><td colspan="7" class="empty">Пока нет попыток.</td></tr>
             </tbody>
           </table>
         </div>
@@ -771,7 +770,7 @@
     function renderAttempts() {
       attemptsNow.textContent = String(guesses.length);
       if (!guesses.length) {
-        attemptRows.innerHTML = '<tr><td colspan="8" class="empty">Пока нет попыток.</td></tr>';
+        attemptRows.innerHTML = '<tr><td colspan="7" class="empty">Пока нет попыток.</td></tr>';
         return;
       }
 
@@ -781,20 +780,17 @@
         const area = compareNumeric(guess.area, target.area, 5000, 60000);
         const temp = compareNumeric(guess.avgTemp, target.avgTemp, 0.7, 2.0);
         const districtCls = guess.district === target.district ? 'ok' : 'neutral';
-        const distance = isCorrect ? 0 : haversineKm(guess, target);
-        const distanceCls = isCorrect ? 'ok' : distance <= 800 ? 'close' : 'neutral';
         const dir = isCorrect ? '✓' : directionCode(bearingDegrees(guess, target));
         const dirText = isCorrect ? '✓' : `${directionArrow(dir)} ${dir}`;
 
         return `
           <tr>
             <td><b>${index + 1}</b></td>
-            <td class="nameCell"><b>${guess.name}</b><span>${isCorrect ? 'правильный ответ' : 'попытка'}</span></td>
+            <td class="nameCell"><b>${guess.name}</b></td>
             <td><span class="pill ${pop.cls}">${formatNumber(guess.population)} ${pop.mark}</span></td>
             <td><span class="pill ${area.cls}">${formatNumber(guess.area)} км² ${area.mark}</span></td>
             <td><span class="pill ${temp.cls}">${guess.avgTemp > 0 ? '+' : ''}${guess.avgTemp.toFixed(1)}°C ${temp.mark}</span></td>
             <td><span class="pill ${districtCls} districtPill" title="${districtTitle(guess.district)}">${guess.district}${guess.district === target.district ? ' ✓' : ''}</span></td>
-            <td><span class="pill ${distanceCls}">${distance === 0 ? '0 км' : '≈ ' + formatNumber(distance) + ' км'}</span></td>
             <td><span class="pill ${isCorrect ? 'ok' : 'neutral'}">${dirText}</span></td>
           </tr>
         `;
@@ -807,7 +803,7 @@
       guesses = [];
       gameOver = false;
       guessInput.value = '';
-      setStatus('Новая игра началась. Угадай субъект за 8 попыток.');
+      setStatus('Угадай субъект за 8 попыток.');
       renderAttempts();
       refreshSubjectStatuses();
       if (popup) popup.remove();
@@ -838,7 +834,7 @@
         gameOver = true;
         setStatus(`Попытки закончились. Был загадан субъект: ${target.name}.`);
       } else {
-        setStatus(`Есть подсказки. Осталось попыток: ${MAX_ATTEMPTS - guesses.length}.`);
+        setStatus('');
       }
 
       renderAttempts();
