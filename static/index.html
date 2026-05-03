@@ -66,6 +66,18 @@
       backdrop-filter: blur(8px);
     }
 
+    .overlayStack {
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      width: min(560px, calc(100vw - 36px));
+    }
+
     .topLine {
       display: flex;
       justify-content: space-between;
@@ -157,22 +169,39 @@
     }
 
     .legend {
-      position: absolute;
-      right: 16px;
-      bottom: 16px;
-      z-index: 10;
+      position: static;
+      margin-top: 8px;
+      justify-content: flex-start;
+
       display: flex;
       gap: 10px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
       background: rgba(255,255,255,.94);
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 8px 10px;
-      box-shadow: 0 8px 24px rgba(15,23,42,.12);
-      font-size: 12px;
-      color: #374151;
+      border: none;
     }
+
+    .helpBtn {
+      position: static;
+      z-index: 20;
+      width: 42px;
+      height: 42px;
+      border-radius: 42px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15);
+      transition: all 0.2s ease;
+    }
+
+.helpBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(0,0,0,.25);
+}
 
     .legend span {
       display: inline-flex;
@@ -294,9 +323,8 @@
   
     /* v6 UI cleanup */
     .topPanel {
-      left: 18px;
-      top: 18px;
-      width: min(560px, calc(100vw - 36px));
+      position: static;
+      width: 100%;
       background: rgba(255,255,255,.96);
       border: 1px solid rgba(226,232,240,.95);
       box-shadow: 0 18px 50px rgba(15,23,42,.18);
@@ -400,10 +428,112 @@
     }
     .modalClose:hover { background: var(--blue2); }
 
+    .shareActions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .shareBtn {
+      display: none;
+      border: 0;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+      color: #fff;
+      box-shadow: 0 12px 24px rgba(15, 23, 42, .18);
+    }
+
+    .shareBtn.show {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .shareBtn:disabled {
+      opacity: .72;
+    }
+
+    .sharePreviewModal {
+      width: min(1100px, calc(100vw - 32px));
+      max-height: calc(100vh - 40px);
+      overflow: auto;
+      background: #fff;
+      color: #0f172a;
+      border: 1px solid #dbe3ef;
+      border-radius: 24px;
+      box-shadow: 0 24px 80px rgba(15, 23, 42, .28);
+      padding: 24px;
+    }
+
+    .sharePreviewModal h2 {
+      margin: 0 0 8px;
+      font-size: 26px;
+      line-height: 1.1;
+      letter-spacing: -0.04em;
+    }
+
+    .sharePreviewText {
+      margin: 0 0 16px;
+      color: #475569;
+      line-height: 1.5;
+      font-size: 15px;
+    }
+
+    .sharePreviewFrame {
+      border: 1px solid #dbe3ef;
+      border-radius: 20px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top left, rgba(147, 197, 253, .28), transparent 34%),
+        linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+      padding: 16px;
+    }
+
+    .sharePreviewImage {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, .14);
+    }
+
+    .shareToolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .shareToolbar button {
+      border: 0;
+    }
+
+    .shareToolbar .secondaryBtn {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .shareToolbar .secondaryBtn:hover:not(:disabled) {
+      background: #cbd5e1;
+    }
+
     @media (max-width: 760px) {
       .controls { grid-template-columns: 1fr 1fr; }
       .controls input { grid-column: 1 / -1; }
-      .topPanel { width: calc(100vw - 24px); left: 12px; top: 12px; }
+      .overlayStack { left: 12px; top: 12px; width: calc(100vw - 24px); }
+      .shareActions {
+        width: 100%;
+      }
+      .shareBtn {
+        width: 100%;
+      }
+      .sharePreviewModal {
+        padding: 18px;
+      }
+      .sharePreviewFrame {
+        padding: 10px;
+      }
     }
 
   </style>
@@ -413,6 +543,7 @@
     <section class="mapShell">
       <div id="map"></div>
 
+      <div class="overlayStack">
       <div class="topPanel">
         <div class="topLine">
           <div>
@@ -430,18 +561,21 @@
           <datalist id="subjectList"></datalist>
           <button class="primary" type="submit">Проверить</button>
           <button type="button" id="restartBtn">Новая</button>
-          <button type="button" id="rulesBtn">Правила игры</button>
         </form>
+
+
 
         <div class="status" id="statusBox" aria-live="polite"></div>
         <div class="small" id="mapSourceLine" style="display:none;"></div>
+        <div class="shareActions">
+          <button class="shareBtn" type="button" id="shareBtn">Поделиться результатом</button>
+        </div>
       </div>
 
-      <div class="legend">
-        <span><i class="dot" style="background: rgba(37,99,235,.12);"></i> доступно</span>
-        <span><i class="dot" style="background: #facc15; border-color:#ca8a04;"></i> попытка</span>
-        <span><i class="dot" style="background: #22c55e; border-color:#15803d;"></i> угадано</span>
+      <button class="helpBtn" type="button" id="rulesBtn">?</button>
       </div>
+
+
     </section>
 
     <main class="content">
@@ -498,6 +632,21 @@
     </div>
   </div>
 
+  <div class="modalBackdrop" id="shareModal" aria-hidden="true">
+    <div class="sharePreviewModal" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+      <h2 id="shareTitle">Поделиться результатом</h2>
+      <p class="sharePreviewText" id="sharePreviewText">Собрали картинку с картой и всеми попытками. Её можно скопировать или скачать.</p>
+      <div class="sharePreviewFrame">
+        <img class="sharePreviewImage" id="sharePreviewImage" alt="Итог игры" />
+      </div>
+      <div class="shareToolbar">
+        <button class="primary" type="button" id="copyShareBtn">Скопировать картинку</button>
+        <button class="secondaryBtn" type="button" id="downloadShareBtn">Скачать PNG</button>
+        <button class="secondaryBtn" type="button" id="closeShareBtn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script>
     const MAX_ATTEMPTS = 8;
@@ -523,6 +672,13 @@
     const rulesBtn = document.getElementById('rulesBtn');
     const rulesModal = document.getElementById('rulesModal');
     const rulesCloseBtn = document.getElementById('rulesCloseBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const shareModal = document.getElementById('shareModal');
+    const sharePreviewImage = document.getElementById('sharePreviewImage');
+    const sharePreviewText = document.getElementById('sharePreviewText');
+    const copyShareBtn = document.getElementById('copyShareBtn');
+    const downloadShareBtn = document.getElementById('downloadShareBtn');
+    const closeShareBtn = document.getElementById('closeShareBtn');
     const statusBox = document.getElementById('statusBox');
     const attemptRows = document.getElementById('attemptRows');
     const attemptsNow = document.getElementById('attemptsNow');
@@ -536,6 +692,8 @@
     let subjectFC = null;
     let popup = null;
     let mapReady = false;
+    let shareImageUrl = '';
+    let shareImageBlob = null;
 
     function normalize(value) {
       return String(value)
@@ -608,6 +766,420 @@
       if (Math.abs(diff) <= exactTolerance) return { mark: '✓', cls: 'ok' };
       if (Math.abs(diff) <= closeTolerance) return { mark: diff < 0 ? '↑' : '↓', cls: 'close' };
       return { mark: diff < 0 ? '↑' : '↓', cls: 'neutral' };
+    }
+
+    function formatTemp(value) {
+      return `${value > 0 ? '+' : ''}${value.toFixed(1)}В°C`;
+    }
+
+    function getGuessResult(guess, index) {
+      const isCorrect = guess.id === target.id;
+      const pop = compareNumeric(guess.population, target.population, 60000, 350000);
+      const area = compareNumeric(guess.area, target.area, 5000, 60000);
+      const temp = compareNumeric(guess.avgTemp, target.avgTemp, 0.7, 2.0);
+      const districtCls = guess.district === target.district ? 'ok' : 'neutral';
+      const dir = isCorrect ? 'вњ“' : directionCode(bearingDegrees(guess, target));
+      const dirText = isCorrect ? 'вњ“' : `${directionArrow(dir)} ${dir}`;
+
+      return { index, guess, isCorrect, pop, area, temp, districtCls, dirText };
+    }
+
+    function updateShareButton() {
+      if (!shareBtn) return;
+      const visible = gameOver && guesses.length > 0;
+      shareBtn.classList.toggle('show', visible);
+      shareBtn.disabled = !visible;
+    }
+
+    function revokeShareImage() {
+      if (shareImageUrl) {
+        URL.revokeObjectURL(shareImageUrl);
+        shareImageUrl = '';
+      }
+      shareImageBlob = null;
+      if (sharePreviewImage) sharePreviewImage.removeAttribute('src');
+    }
+
+    function closeSharePreview() {
+      if (!shareModal) return;
+      shareModal.classList.remove('show');
+      shareModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function getFeatureBySubjectId(subjectId) {
+      if (!subjectFC) return null;
+      return subjectFC.features.find((feature) => feature.properties && feature.properties.id === subjectId) || null;
+    }
+
+    function getGeometryPolygons(geometry) {
+      if (!geometry) return [];
+      if (geometry.type === 'Polygon') return [geometry.coordinates || []];
+      if (geometry.type === 'MultiPolygon') return geometry.coordinates || [];
+      return [];
+    }
+
+    function computeFeatureBounds() {
+      const coords = [];
+      if (subjectFC && subjectFC.features) {
+        for (const feature of subjectFC.features) collectCoords(feature.geometry, coords);
+      }
+      if (!coords.length) {
+        for (const subject of SUBJECTS) {
+          const [minLon, minLat, maxLon, maxLat] = subject.bbox;
+          coords.push([minLon, minLat], [maxLon, maxLat]);
+        }
+      }
+
+      let minLon = Infinity;
+      let maxLon = -Infinity;
+      let minLat = Infinity;
+      let maxLat = -Infinity;
+
+      for (const [lon, lat] of coords) {
+        minLon = Math.min(minLon, lon);
+        maxLon = Math.max(maxLon, lon);
+        minLat = Math.min(minLat, lat);
+        maxLat = Math.max(maxLat, lat);
+      }
+
+      return { minLon, maxLon, minLat, maxLat };
+    }
+
+    function projectLonLat(lon, lat, bounds, width, height, padding = 0) {
+      const usableWidth = width - padding * 2;
+      const usableHeight = height - padding * 2;
+      const lonSpan = Math.max(bounds.maxLon - bounds.minLon, 1);
+      const latSpan = Math.max(bounds.maxLat - bounds.minLat, 1);
+      const x = padding + ((lon - bounds.minLon) / lonSpan) * usableWidth;
+      const y = padding + (1 - ((lat - bounds.minLat) / latSpan)) * usableHeight;
+      return { x, y };
+    }
+
+    function roundRect(ctx, x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + width, y, x + width, y + height, r);
+      ctx.arcTo(x + width, y + height, x, y + height, r);
+      ctx.arcTo(x, y + height, x, y, r);
+      ctx.arcTo(x, y, x + width, y, r);
+      ctx.closePath();
+    }
+
+    function trimText(ctx, text, maxWidth) {
+      if (ctx.measureText(text).width <= maxWidth) return text;
+      let out = text;
+      while (out.length > 1 && ctx.measureText(`${out}…`).width > maxWidth) out = out.slice(0, -1);
+      return `${out}…`;
+    }
+
+    function drawPill(ctx, x, y, text, cls) {
+      const palette = {
+        ok: { fill: '#dcfce7', text: '#166534' },
+        close: { fill: '#fef3c7', text: '#92400e' },
+        neutral: { fill: '#e2e8f0', text: '#334155' }
+      };
+      const colors = palette[cls] || palette.neutral;
+      ctx.font = '700 20px system-ui, sans-serif';
+      const width = ctx.measureText(text).width + 28;
+      roundRect(ctx, x, y, width, 34, 17);
+      ctx.fillStyle = colors.fill;
+      ctx.fill();
+      ctx.fillStyle = colors.text;
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, x + 14, y + 18);
+      return width;
+    }
+
+    function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = String(text).split(/\s+/).filter(Boolean);
+      const lines = [];
+      let current = '';
+
+      for (const word of words) {
+        const next = current ? `${current} ${word}` : word;
+        if (ctx.measureText(next).width <= maxWidth || !current) current = next;
+        else {
+          lines.push(current);
+          current = word;
+        }
+      }
+      if (current) lines.push(current);
+
+      for (let i = 0; i < lines.length; i += 1) ctx.fillText(lines[i], x, y + i * lineHeight);
+      return lines.length;
+    }
+
+    function drawResultMap(ctx, x, y, width, height) {
+      const bounds = computeFeatureBounds();
+      roundRect(ctx, x, y, width, height, 28);
+      ctx.fillStyle = '#f8fbff';
+      ctx.fill();
+      ctx.strokeStyle = '#dbe3ef';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      const mapPadding = 28;
+      const project = (lon, lat) => projectLonLat(lon, lat, bounds, width, height, mapPadding);
+
+      if (subjectFC && subjectFC.features) {
+        for (const feature of subjectFC.features) {
+          const id = feature.properties && feature.properties.id;
+          const isTarget = target && id === target.id;
+          const isGuessed = guesses.some((item) => item.id === id);
+          const fill = isTarget ? '#bbf7d0' : isGuessed ? '#fde68a' : '#dbeafe';
+          const stroke = isTarget ? '#15803d' : isGuessed ? '#ca8a04' : '#60a5fa';
+
+          ctx.beginPath();
+          for (const polygon of getGeometryPolygons(feature.geometry)) {
+            for (const ring of polygon) {
+              if (!ring || !ring.length) continue;
+              ring.forEach(([lon, lat], index) => {
+                const point = project(lon, lat);
+                if (index === 0) ctx.moveTo(x + point.x, y + point.y);
+                else ctx.lineTo(x + point.x, y + point.y);
+              });
+              ctx.closePath();
+            }
+          }
+          ctx.fillStyle = fill;
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = isTarget ? 3 : 1.4;
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+
+      const targetPoint = getPoint(target);
+      const targetProjected = project(targetPoint.lon, targetPoint.lat);
+
+      ctx.save();
+      ctx.setLineDash([10, 10]);
+      ctx.strokeStyle = 'rgba(37, 99, 235, .28)';
+      ctx.lineWidth = 2;
+      for (const guess of guesses) {
+        const point = getPoint(guess);
+        const projected = project(point.lon, point.lat);
+        ctx.beginPath();
+        ctx.moveTo(x + projected.x, y + projected.y);
+        ctx.lineTo(x + targetProjected.x, y + targetProjected.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      guesses.forEach((guess, index) => {
+        const point = getPoint(guess);
+        const projected = project(point.lon, point.lat);
+        const isCorrect = guess.id === target.id;
+        ctx.beginPath();
+        ctx.arc(x + projected.x, y + projected.y, 14, 0, Math.PI * 2);
+        ctx.fillStyle = isCorrect ? '#16a34a' : '#2563eb';
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#fff';
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.font = '700 16px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(index + 1), x + projected.x, y + projected.y + 0.5);
+      });
+
+      ctx.beginPath();
+      ctx.arc(x + targetProjected.x, y + targetProjected.y, 17, 0, Math.PI * 2);
+      ctx.fillStyle = '#22c55e';
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#fff';
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 18px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('★', x + targetProjected.x, y + targetProjected.y + 1);
+
+      ctx.textAlign = 'left';
+      ctx.font = '700 24px system-ui, sans-serif';
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText('Карта попыток', x + 26, y + 34);
+      drawPill(ctx, x + 26, y + height - 58, '★ цель', 'ok');
+      drawPill(ctx, x + 150, y + height - 58, '1..8 попытки', 'neutral');
+    }
+
+    function drawResultTable(ctx, x, y, width, rows) {
+      const rowHeight = 50;
+      const headerHeight = 48;
+      const totalHeight = headerHeight + rows.length * rowHeight + 24;
+
+      roundRect(ctx, x, y, width, totalHeight, 28);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = '#dbe3ef';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      const cols = [
+        { key: 'num', label: '#', width: 56 },
+        { key: 'subject', label: 'Субъект', width: 360 },
+        { key: 'population', label: 'Население', width: 220 },
+        { key: 'area', label: 'Площадь', width: 190 },
+        { key: 'temp', label: 'Средняя t°', width: 190 },
+        { key: 'district', label: 'Округ', width: 170 },
+        { key: 'dir', label: 'Направление', width: 200 }
+      ];
+
+      let cursorX = x;
+      ctx.fillStyle = '#f1f5f9';
+      roundRect(ctx, x, y, width, headerHeight, 28);
+      ctx.fill();
+
+      ctx.font = '800 18px system-ui, sans-serif';
+      ctx.fillStyle = '#334155';
+      ctx.textBaseline = 'middle';
+      for (const col of cols) {
+        ctx.fillText(col.label, cursorX + 16, y + 24);
+        cursorX += col.width;
+      }
+
+      rows.forEach((row, index) => {
+        const top = y + headerHeight + index * rowHeight;
+        if (index % 2 === 1) {
+          ctx.fillStyle = '#fbfdff';
+          ctx.fillRect(x + 2, top, width - 4, rowHeight);
+        }
+        ctx.strokeStyle = '#e4ebf5';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + 1, top + rowHeight);
+        ctx.lineTo(x + width - 1, top + rowHeight);
+        ctx.stroke();
+
+        let colX = x;
+        ctx.font = '700 18px system-ui, sans-serif';
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText(String(row.index + 1), colX + 16, top + rowHeight / 2);
+        colX += cols[0].width;
+
+        ctx.fillText(trimText(ctx, row.guess.name, cols[1].width - 24), colX + 16, top + rowHeight / 2);
+        colX += cols[1].width;
+
+        drawPill(ctx, colX + 12, top + 8, `${formatNumber(row.guess.population)} ${row.pop.mark}`, row.pop.cls);
+        colX += cols[2].width;
+
+        drawPill(ctx, colX + 12, top + 8, `${formatNumber(row.guess.area)} км² ${row.area.mark}`, row.area.cls);
+        colX += cols[3].width;
+
+        drawPill(ctx, colX + 12, top + 8, `${formatTemp(row.guess.avgTemp)} ${row.temp.mark}`, row.temp.cls);
+        colX += cols[4].width;
+
+        drawPill(ctx, colX + 12, top + 8, `${row.guess.district}${row.guess.district === target.district ? ' ✓' : ''}`, row.districtCls);
+        colX += cols[5].width;
+
+        drawPill(ctx, colX + 12, top + 8, row.dirText, row.isCorrect ? 'ok' : 'neutral');
+      });
+
+      return totalHeight;
+    }
+
+    async function canvasToBlob(canvas) {
+      return await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    }
+
+    async function buildShareImageBlob() {
+      const rows = guesses.map((guess, index) => getGuessResult(guess, index));
+      const width = 1600;
+      const padding = 44;
+      const mapHeight = 560;
+      const tableHeight = 48 + rows.length * 50 + 24;
+      const height = padding * 2 + 170 + mapHeight + 36 + tableHeight;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      const bg = ctx.createLinearGradient(0, 0, 0, height);
+      bg.addColorStop(0, '#f8fbff');
+      bg.addColorStop(1, '#e7f0ff');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '800 44px system-ui, sans-serif';
+      ctx.textBaseline = 'top';
+      ctx.fillText('Угадай субъект РФ', padding, padding);
+
+      const won = guesses.some((guess) => guess.id === target.id);
+      const summary = won
+        ? `Угадано за ${guesses.length} ${guesses.length === 1 ? 'ход' : guesses.length < 5 ? 'хода' : 'ходов'}`
+        : `Не угадано за ${MAX_ATTEMPTS} ходов`;
+      drawPill(ctx, padding + 390, padding + 6, summary, won ? 'ok' : 'close');
+
+      ctx.font = '600 26px system-ui, sans-serif';
+      ctx.fillStyle = '#334155';
+      ctx.fillText(`Цель: ${target.name}`, padding, padding + 62);
+      ctx.fillStyle = '#475569';
+      drawWrappedText(
+        ctx,
+        'На карте отмечены все попытки игрока, а в таблице ниже показано полное сравнение каждого хода с правильным ответом.',
+        padding,
+        padding + 102,
+        width - padding * 2,
+        34
+      );
+
+      const mapTop = padding + 170;
+      drawResultMap(ctx, padding, mapTop, width - padding * 2, mapHeight);
+      drawResultTable(ctx, padding, mapTop + mapHeight + 36, width - padding * 2, rows);
+
+      return canvasToBlob(canvas);
+    }
+
+    async function openSharePreview() {
+      if (!gameOver || !guesses.length || !shareModal) return;
+
+      shareBtn.disabled = true;
+      shareBtn.textContent = 'Собираем картинку...';
+      sharePreviewText.textContent = 'Собираем итоговую картинку с картой и таблицей.';
+
+      try {
+        revokeShareImage();
+        shareImageBlob = await buildShareImageBlob();
+        if (!shareImageBlob) throw new Error('image_blob_failed');
+        shareImageUrl = URL.createObjectURL(shareImageBlob);
+        sharePreviewImage.src = shareImageUrl;
+        sharePreviewText.textContent = 'Картинка готова. Можно скопировать её в буфер обмена или скачать PNG.';
+        shareModal.classList.add('show');
+        shareModal.setAttribute('aria-hidden', 'false');
+      } catch (error) {
+        sharePreviewText.textContent = 'Не удалось собрать картинку.';
+        setStatus('Не удалось собрать картинку для шеринга.');
+      } finally {
+        shareBtn.disabled = false;
+        shareBtn.textContent = 'Поделиться результатом';
+      }
+    }
+
+    async function copyShareImage() {
+      if (!shareImageBlob) return;
+      try {
+        if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
+          throw new Error('clipboard_unavailable');
+        }
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': shareImageBlob })]);
+        sharePreviewText.textContent = 'Картинка скопирована в буфер обмена.';
+      } catch (error) {
+        sharePreviewText.textContent = 'Браузер не дал скопировать картинку. Можно скачать PNG кнопкой рядом.';
+      }
+    }
+
+    function downloadShareImage() {
+      if (!shareImageBlob) return;
+      const link = document.createElement('a');
+      const url = shareImageUrl || URL.createObjectURL(shareImageBlob);
+      link.href = url;
+      link.download = 'subject-guess-result.png';
+      link.click();
+      if (!shareImageUrl) URL.revokeObjectURL(url);
     }
 
     function bboxToPolygon(bbox) {
@@ -941,6 +1513,29 @@
       }).join('');
     }
 
+    function renderAttempts() {
+      attemptsNow.textContent = String(guesses.length);
+      if (!guesses.length) {
+        attemptRows.innerHTML = '<tr><td colspan="7" class="empty">РџРѕРєР° РЅРµС‚ РїРѕРїС‹С‚РѕРє.</td></tr>';
+        return;
+      }
+
+      attemptRows.innerHTML = guesses.map((guess, index) => {
+        const { isCorrect, pop, area, temp, districtCls, dirText } = getGuessResult(guess, index);
+        return `
+          <tr>
+            <td><b>${index + 1}</b></td>
+            <td class="nameCell"><b>${guess.name}</b></td>
+            <td><span class="pill ${pop.cls}">${formatNumber(guess.population)} ${pop.mark}</span></td>
+            <td><span class="pill ${area.cls}">${formatNumber(guess.area)} РєРјВІ ${area.mark}</span></td>
+            <td><span class="pill ${temp.cls}">${formatTemp(guess.avgTemp)} ${temp.mark}</span></td>
+            <td><span class="pill ${districtCls} districtPill" title="${districtTitle(guess.district)}">${guess.district}${guess.district === target.district ? ' вњ“' : ''}</span></td>
+            <td><span class="pill ${isCorrect ? 'ok' : 'neutral'}">${dirText}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
     function restartGame() {
       const old = target;
       target = pickRandomSubject(old ? old.id : null);
@@ -948,7 +1543,10 @@
       gameOver = false;
       guessInput.value = '';
       setStatus('');
+      closeSharePreview();
+      revokeShareImage();
       renderAttempts();
+      updateShareButton();
       refreshSubjectStatuses();
       if (popup) popup.remove();
     }
@@ -990,6 +1588,7 @@
       }
 
       renderAttempts();
+      updateShareButton();
       refreshSubjectStatuses();
 
       if (mapReady && map) {
@@ -1012,13 +1611,23 @@
 
     if (rulesBtn) rulesBtn.addEventListener('click', openRules);
     if (rulesCloseBtn) rulesCloseBtn.addEventListener('click', closeRules);
+    if (shareBtn) shareBtn.addEventListener('click', openSharePreview);
+    if (copyShareBtn) copyShareBtn.addEventListener('click', copyShareImage);
+    if (downloadShareBtn) downloadShareBtn.addEventListener('click', downloadShareImage);
+    if (closeShareBtn) closeShareBtn.addEventListener('click', closeSharePreview);
     if (rulesModal) {
       rulesModal.addEventListener('click', (event) => {
         if (event.target === rulesModal) closeRules();
       });
     }
+    if (shareModal) {
+      shareModal.addEventListener('click', (event) => {
+        if (event.target === shareModal) closeSharePreview();
+      });
+    }
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') closeRules();
+      if (event.key === 'Escape') closeSharePreview();
     });
 
     guessForm.addEventListener('submit', handleGuess);
