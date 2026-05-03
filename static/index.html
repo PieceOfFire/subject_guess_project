@@ -1032,9 +1032,7 @@
       ctx.textAlign = 'left';
       ctx.font = '700 24px system-ui, sans-serif';
       ctx.fillStyle = '#0f172a';
-      ctx.fillText('Карта попыток', x + 26, y + 34);
       drawPill(ctx, x + 26, y + height - 58, '★ цель', 'ok');
-      drawPill(ctx, x + 150, y + height - 58, '1..8 попытки', 'neutral');
     }
 
     function drawResultTable(ctx, x, y, width, rows) {
@@ -1140,23 +1138,12 @@
       ctx.fillText('Угадай субъект РФ', padding, padding);
 
       const won = guesses.some((guess) => guess.id === target.id);
-      const summary = won
-        ? `Угадано за ${guesses.length} ${guesses.length === 1 ? 'ход' : guesses.length < 5 ? 'хода' : 'ходов'}`
-        : `Не угадано за ${MAX_ATTEMPTS} ходов`;
-      drawPill(ctx, padding + 390, padding + 6, summary, won ? 'ok' : 'close');
+
 
       ctx.font = '600 26px system-ui, sans-serif';
       ctx.fillStyle = '#334155';
       ctx.fillText(`Цель: ${target.name}`, padding, padding + 62);
       ctx.fillStyle = '#475569';
-      drawWrappedText(
-        ctx,
-        'На карте отмечены все попытки игрока, а в таблице ниже показано полное сравнение каждого хода с правильным ответом.',
-        padding,
-        padding + 102,
-        width - padding * 2,
-        34
-      );
 
       const mapTop = padding + 170;
       drawResultMap(ctx, padding, mapTop, width - padding * 2, mapHeight);
