@@ -818,7 +818,11 @@
       return [];
     }
 
-    function computeFeatureBounds() {
+    function normalizeLon360(lon) {
+      return ((lon % 360) + 360) % 360;
+    }
+
+    function collectMapCoords() {
       const coords = [];
       if (subjectFC && subjectFC.features) {
         for (const feature of subjectFC.features) collectCoords(feature.geometry, coords);
@@ -829,6 +833,25 @@
           coords.push([minLon, minLat], [maxLon, maxLat]);
         }
       }
+      return coords;
+    }
+
+    function computeWrappedBounds(coords) {
+      const normalizedLons = coords.map(([lon]) => normalizeLon360(lon)).sort((a, b) => a - b);
+      let wrapStart = normalizedLons[0] || 0;
+      let largestGap = -1;
+
+      if (normalizedLons.length > 1) {
+        for (let i = 0; i < normalizedLons.length; i += 1) {
+          const current = normalizedLons[i];
+          const next = i === normalizedLons.length - 1 ? normalizedLons[0] + 360 : normalizedLons[i + 1];
+          const gap = next - current;
+          if (gap > largestGap) {
+            largestGap = gap;
+            wrapStart = normalizeLon360(next);
+          }
+        }
+      }
 
       let minLon = Infinity;
       let maxLon = -Infinity;
@@ -836,23 +859,32 @@
       let maxLat = -Infinity;
 
       for (const [lon, lat] of coords) {
-        minLon = Math.min(minLon, lon);
-        maxLon = Math.max(maxLon, lon);
+        let adjustedLon = normalizeLon360(lon);
+        if (adjustedLon < wrapStart) adjustedLon += 360;
+        minLon = Math.min(minLon, adjustedLon);
+        maxLon = Math.max(maxLon, adjustedLon);
         minLat = Math.min(minLat, lat);
         maxLat = Math.max(maxLat, lat);
       }
 
-      return { minLon, maxLon, minLat, maxLat };
+      return { minLon, maxLon, minLat, maxLat, wrapStart };
     }
 
-    function projectLonLat(lon, lat, bounds, width, height, padding = 0) {
+    function createMapProjector(width, height, padding = 0) {
+      const coords = collectMapCoords();
+      const bounds = computeWrappedBounds(coords);
       const usableWidth = width - padding * 2;
       const usableHeight = height - padding * 2;
       const lonSpan = Math.max(bounds.maxLon - bounds.minLon, 1);
       const latSpan = Math.max(bounds.maxLat - bounds.minLat, 1);
-      const x = padding + ((lon - bounds.minLon) / lonSpan) * usableWidth;
-      const y = padding + (1 - ((lat - bounds.minLat) / latSpan)) * usableHeight;
-      return { x, y };
+
+      return function project(lon, lat) {
+        let adjustedLon = normalizeLon360(lon);
+        if (adjustedLon < bounds.wrapStart) adjustedLon += 360;
+        const x = padding + ((adjustedLon - bounds.minLon) / lonSpan) * usableWidth;
+        const y = padding + (1 - ((lat - bounds.minLat) / latSpan)) * usableHeight;
+        return { x, y };
+      };
     }
 
     function roundRect(ctx, x, y, width, height, radius) {
@@ -911,7 +943,6 @@
     }
 
     function drawResultMap(ctx, x, y, width, height) {
-      const bounds = computeFeatureBounds();
       roundRect(ctx, x, y, width, height, 28);
       ctx.fillStyle = '#f8fbff';
       ctx.fill();
@@ -920,7 +951,7 @@
       ctx.stroke();
 
       const mapPadding = 28;
-      const project = (lon, lat) => projectLonLat(lon, lat, bounds, width, height, mapPadding);
+      const project = createMapProjector(width, height, mapPadding);
 
       if (subjectFC && subjectFC.features) {
         for (const feature of subjectFC.features) {
