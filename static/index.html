@@ -1516,7 +1516,7 @@
     function renderAttempts() {
       attemptsNow.textContent = String(guesses.length);
       if (!guesses.length) {
-        attemptRows.innerHTML = '<tr><td colspan="7" class="empty">РџРѕРєР° РЅРµС‚ РїРѕРїС‹С‚РѕРє.</td></tr>';
+        attemptRows.innerHTML = '<tr><td colspan="7" class="empty">\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043F\u043E\u043F\u044B\u0442\u043E\u043A.</td></tr>';
         return;
       }
 
@@ -1527,9 +1527,48 @@
             <td><b>${index + 1}</b></td>
             <td class="nameCell"><b>${guess.name}</b></td>
             <td><span class="pill ${pop.cls}">${formatNumber(guess.population)} ${pop.mark}</span></td>
-            <td><span class="pill ${area.cls}">${formatNumber(guess.area)} РєРјВІ ${area.mark}</span></td>
+            <td><span class="pill ${area.cls}">${formatNumber(guess.area)} \u043A\u043C\u00B2 ${area.mark}</span></td>
             <td><span class="pill ${temp.cls}">${formatTemp(guess.avgTemp)} ${temp.mark}</span></td>
-            <td><span class="pill ${districtCls} districtPill" title="${districtTitle(guess.district)}">${guess.district}${guess.district === target.district ? ' вњ“' : ''}</span></td>
+            <td><span class="pill ${districtCls} districtPill" title="${districtTitle(guess.district)}">${guess.district}${guess.district === target.district ? ' \u2713' : ''}</span></td>
+            <td><span class="pill ${isCorrect ? 'ok' : 'neutral'}">${dirText}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function formatTemp(value) {
+      return `${value > 0 ? '+' : ''}${value.toFixed(1)}\u00B0C`;
+    }
+
+    function getGuessResult(guess, index) {
+      const isCorrect = guess.id === target.id;
+      const pop = compareNumeric(guess.population, target.population, 60000, 350000);
+      const area = compareNumeric(guess.area, target.area, 5000, 60000);
+      const temp = compareNumeric(guess.avgTemp, target.avgTemp, 0.7, 2.0);
+      const districtCls = guess.district === target.district ? 'ok' : 'neutral';
+      const dir = isCorrect ? '\u2713' : directionCode(bearingDegrees(guess, target));
+      const dirText = isCorrect ? '\u2713' : `${directionArrow(dir)} ${dir}`;
+
+      return { index, guess, isCorrect, pop, area, temp, districtCls, dirText };
+    }
+
+    function renderAttempts() {
+      attemptsNow.textContent = String(guesses.length);
+      if (!guesses.length) {
+        attemptRows.innerHTML = '<tr><td colspan="7" class="empty">Пока нет попыток.</td></tr>';
+        return;
+      }
+
+      attemptRows.innerHTML = guesses.map((guess, index) => {
+        const { isCorrect, pop, area, temp, districtCls, dirText } = getGuessResult(guess, index);
+        return `
+          <tr>
+            <td><b>${index + 1}</b></td>
+            <td class="nameCell"><b>${guess.name}</b></td>
+            <td><span class="pill ${pop.cls}">${formatNumber(guess.population)} ${pop.mark}</span></td>
+            <td><span class="pill ${area.cls}">${formatNumber(guess.area)} км² ${area.mark}</span></td>
+            <td><span class="pill ${temp.cls}">${formatTemp(guess.avgTemp)} ${temp.mark}</span></td>
+            <td><span class="pill ${districtCls} districtPill" title="${districtTitle(guess.district)}">${guess.district}${guess.district === target.district ? ' ✓' : ''}</span></td>
             <td><span class="pill ${isCorrect ? 'ok' : 'neutral'}">${dirText}</span></td>
           </tr>
         `;
