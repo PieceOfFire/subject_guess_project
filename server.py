@@ -55,9 +55,19 @@ def favicon():
     return Response(status_code=204)
 
 
+@app.head("/")
+def index_head():
+    return Response(status_code=200)
+
+
 @app.get("/")
 def index():
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+
+@app.api_route("/healthz", methods=["GET", "HEAD"])
+def healthcheck():
+    return Response(status_code=200)
 
 
 if __name__ == "__main__":
